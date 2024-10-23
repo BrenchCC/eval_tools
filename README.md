@@ -3,7 +3,6 @@
 ### 模型配置存放位置
 
 `configs/models`  
-- 存储在前缀为xdan的目录 
 - 相关脚本一般命名为`model.py` or `model_vllm.py`  即HF和Openai服务不同调用
 
 ### 数据配置存放位置
