@@ -1,0 +1,67 @@
+from opencompass.openicl.icl_prompt_template import PromptTemplate
+from opencompass.openicl.icl_retriever import ZeroRetriever
+from opencompass.openicl.icl_inferencer import GenInferencer,SCInferencer
+from opencompass.datasets import GSM8KDataset, gsm8k_postprocess, gsm8k_dataset_postprocess, Gsm8kEvaluator
+
+
+gsm8k_reader_cfg = dict(input_columns=['question'], output_column='answer')
+
+gsm8k_infer_cfg = dict(
+    prompt_template=dict(
+        type=PromptTemplate,
+        template=dict(
+            round=[
+                dict(role='HUMAN', prompt="Question: Angelo and Melanie want to plan how many hours over the next week they should study together for their test next week. They have 2 chapters of their textbook to study and 4 worksheets to memorize. They figure out that they should dedicate 3 hours to each chapter of their textbook and 1.5 hours for each worksheet. If they plan to study no more than 4 hours each day, how many days should they plan to study total over the next week if they take a 10-minute break every hour, include 3 10-minute snack breaks each day, and 30 minutes for lunch each day?\nLet's think step by step\nAnswer:"),
+                dict(role='BOT', prompt='Angelo and Melanie think they should dedicate 3 hours to each of the 2 chapters, 3 hours x 2 chapters = 6 hours total.\nFor the worksheets they plan to dedicate 1.5 hours for each worksheet, 1.5 hours x 4 worksheets = 6 hours total.\nAngelo and Melanie need to start with planning 12 hours to study, at 4 hours a day, 12 / 4 = 3 days.\nHowever, they need to include time for breaks and lunch. Every hour they want to include a 10-minute break, so 12 total hours x 10 minutes = 120 extra minutes for breaks.\nThey also want to include 3 10-minute snack breaks, 3 x 10 minutes = 30 minutes.\nAnd they want to include 30 minutes for lunch each day, so 120 minutes for breaks + 30 minutes for snack breaks + 30 minutes for lunch = 180 minutes, or 180 / 60 minutes per hour = 3 extra hours.\nSo Angelo and Melanie want to plan 12 hours to study + 3 hours of breaks = 15 hours total.\nThey want to study no more than 4 hours each day, 15 hours / 4 hours each day = 3.75\nThey will need to plan to study 4 days to allow for all the time they need.\nThe answer is 4\n'),
+                dict(role='HUMAN', prompt="Question: Mark's basketball team scores 25 2 pointers, 8 3 pointers and 10 free throws.  Their opponents score double the 2 pointers but half the 3 pointers and free throws.  What's the total number of points scored by both teams added together?\nLet's think step by step\nAnswer:"),
+                dict(role='BOT', prompt="Mark's team scores 25 2 pointers, meaning they scored 25*2= 50 points in 2 pointers.\nHis team also scores 6 3 pointers, meaning they scored 8*3= 24 points in 3 pointers\nThey scored 10 free throws, and free throws count as one point so they scored 10*1=10 points in free throws.\nAll together his team scored 50+24+10= 84 points\nMark's opponents scored double his team's number of 2 pointers, meaning they scored 50*2=100 points in 2 pointers.\nHis opponents scored half his team's number of 3 pointers, meaning they scored 24/2= 12 points in 3 pointers.\nThey also scored half Mark's team's points in free throws, meaning they scored 10/2=5 points in free throws.\nAll together Mark's opponents scored 100+12+5=117 points\nThe total score for the game is both team's scores added together, so it is 84+117=201 points\nThe answer is 201\n"),
+                dict(role='HUMAN', prompt="Question: Bella has two times as many marbles as frisbees. She also has 20 more frisbees than deck cards. If she buys 2/5 times more of each item, what would be the total number of the items she will have if she currently has 60 marbles?\nLet's think step by step\nAnswer:"),
+                dict(role='BOT', prompt="When Bella buys 2/5 times more marbles, she'll have increased the number of marbles by 2/5*60 = 24\nThe total number of marbles she'll have is 60+24 = 84\nIf Bella currently has 60 marbles, and she has two times as many marbles as frisbees, she has 60/2 = 30 frisbees.\nIf Bella buys 2/5 times more frisbees, she'll have 2/5*30 = 12 more frisbees.\nThe total number of frisbees she'll have will increase to 30+12 = 42\nBella also has 20 more frisbees than deck cards, meaning she has 30-20 = 10 deck cards\nIf she buys 2/5 times more deck cards, she'll have 2/5*10 = 4 more deck cards.\nThe total number of deck cards she'll have is 10+4 = 14\nTogether, Bella will have a total of 14+42+84 = 140 items\nThe answer is 140\n"),
+                dict(role='HUMAN', prompt="Question: A group of 4 fruit baskets contains 9 apples, 15 oranges, and 14 bananas in the first three baskets and 2 less of each fruit in the fourth basket. How many fruits are there?\nLet's think step by step\nAnswer:"),
+                dict(role='BOT', prompt='For the first three baskets, the number of apples and oranges in one basket is 9+15=24\nIn total, together with bananas, the number of fruits in one basket is 24+14=38 for the first three baskets.\nSince there are three baskets each having 38 fruits, there are 3*38=114 fruits in the first three baskets.\nThe number of apples in the fourth basket is 9-2=7\nThere are also 15-2=13 oranges in the fourth basket\nThe combined number of oranges and apples in the fourth basket is 13+7=20\nThe fourth basket also contains 14-2=12 bananas.\nIn total, the fourth basket has 20+12=32 fruits.\nThe four baskets together have 32+114=146 fruits.\nThe answer is 146\n'),
+                dict(role='HUMAN', prompt='''Question: Janet hires six employees. Four of them are warehouse workers who make $15/hour, and the other two are managers who make $20/hour. Janet has to pay 10% of her workers' salaries in FICA taxes. If everyone works 25 days a month and 8 hours a day, how much does Janet owe total for their wages and taxes for one month?\nLet's think step by step\nAnswer:"
+                '''),
+                dict(role='BOT', prompt='''First figure out how many hours each worker works per month by multiplying the number of days they work by the number of hours a day they work: 25 days * 8 hours/day = 200 hours.\nThen calculate how much one warehouse worker makes per month by multiplying their hourly rate by the number of hours they work: 200 hours * $15/hour = $3000.\nThen multiply that number by 4 to find out how much all the warehouse workers make: $3000/worker * 4 workers = $12,000.\nNow multiply the hours each manager works (also 200) by their hourly wage to find out how much one manager makes per month: 200 hours * $20/hour = $4,000.\nNow multiply one manager's wages by the number of managers (2) to find their total wage amount: $4,000/manager * 2 managers = $8,000.\nNow add the wages for the managers and the workers to find the total cost of the wages: $8,000 + $12,000 = $20,000.\nNow multiply the total wage bill by 10% to find how much the FICA taxes are: $20,000 * .1 = $2,000.\nNow add the total wage bill to the total tax amount to find the grand total: $2,000 + $20,000 = $22,000.\nThe answer is 22000.\n
+                '''),
+                dict(role='HUMAN',prompt='''Question: In a graveyard, there are 20 skeletons.  Half of these skeletons are adult women, and the remaining number are split evenly between adult men and children.  If an adult woman has 20 bones in their body, and a male has 5 more than this, and a child has half as many as an adult woman, how many bones are in the graveyard?\nLet's think step by step.\nAnswer:"
+                '''),
+                dict(role='BOT', prompt='''We first need to figure out how many of each type of skeleton there are. Since half the 20 skeletons are adult women, that means there are 20/2=10 adult women's skeletons.\nThe remaining half, 10, is split between adult men and children, meaning there are 10/2= 5 of each.\nSince an adult woman has 20 bones in their body, this means that the 10 skeletons have 20*10=200 bones in total.\nSince an adult man has 5 more bones in their body than an adult woman, this means they have 20+5= 25 bones in their body.\nThere are 5 adult men, meaning there are 25*5=125 bones in the adult male skeletons in total.\nSince a child has half as many bones as the 20 in an adult woman, this means the children have 20/2= 10 bones in their body.\nSince there are 5 children, this means there are 5*10= 50 bones in the children's skeletons in total.\nTherefore, altogether there are 50+125+200= 375 bones in total in the graveyard.\nThe answer is 375.\n
+                '''),
+                dict(role='HUMAN',prompt='''Question: Last month, a factory made 12000 dolls and their associated accessories.  The accessories for each doll included 2 shoes, 3 bags, 1 set of cosmetics, and 5 hats.  If each doll took 45 seconds to make and each accessory took 10 seconds to make, what was the total combined machine operation time, in seconds, required to manufacture all of the dolls and their accessories?\nLet's think step by step.\nAnswer:
+                '''),
+                dict(role='BOT', prompt='''The number of shoes the factory made was 12000 dolls x 2 shoes/doll = 24000 shoes.\nThe factory also made for each doll 12000 dolls x 3 bags/doll = 36000 bags.\nThe set of cosmetics made for each doll was just one, so there are 12000 cosmetics sets.\nFinally, the number of hats for the dolls was 12000 dolls x 5 hats/doll = 60000 hats.\nIn total, the number of accessories was 24000 + 36000 + 12000 + 60000 = 132000 accessories.\nThe dolls took in total 12000 dolls x 45 seconds/doll = 540000 seconds to be made.\nAll the accessories also took 132000 accessories x 10 seconds/accessory = 1320000 seconds.\nCombing both results, we have that the total time the machinery was working was 1320000 + 540000 = 1860000 seconds.\nThe answer is 1860000.\n
+                '''),
+                dict(role='HUMAN', prompt='''Question: Tina makes $18.00 an hour.  If she works more than 8 hours per shift, she is eligible for overtime, which is paid by your hourly wage + 1/2 your hourly wage.  If she works 10 hours every day for 5 days, how much money does she make?\nLet's think step by step\nAnswer:
+                '''),
+                dict(role='BOT', prompt='''She works 8 hours a day for $18 per hour so she makes 8*18 = $144.00 per 8-hour shift.\nShe works 10 hours a day and anything over 8 hours is eligible for overtime, so she gets 10-8 = 2 hours of overtime.\nOvertime is calculated as time and a half so and she makes $18/hour so her overtime pay is 18*.5 = $9.00.\nHer overtime pay is 18+9 = $27.00.\nHer base pay is $144.00 per 8-hour shift and she works 5 days and makes 5 * $144 = $720.00.\nHer overtime pay is $27.00 per hour and she works 2 hours of overtime per day and makes 27*2 = $54.00 in overtime pay.\n2 hours of overtime pay for 5 days means she makes 54*5 = $270.00.In 5 days her base pay is $720.00 and she makes $270.00 in overtime pay so she makes $720 + $270 = $990.00.\nThe answer is 990.\n
+                '''),
+                dict(role='HUMAN', prompt="Question: {question}\nLet's think step by step\nAnswer:"),
+            ],
+        )),
+    retriever=dict(type=ZeroRetriever),
+    inferencer=dict(type=SCInferencer,generation_kwargs=dict(do_sample=True, temperature=0.7, top_p=0.95), max_out_len=512,infer_type='SC',sc_size =8))
+    #inferencer=dict(type=SCInferencer,generation_kwargs=dict(do_sample=True, temperature=1.0, top_k=40), max_out_len=512,infer_type='SC',sc_size =4))
+    #inferencer=dict(type=SCInferencer,generation_kwargs=dict(do_sample=True, temperature=1.5, top_k=40), max_out_len=512,infer_type='SC',sc_size =4))
+    #inferencer=dict(type=SCInferencer,generation_kwargs=dict(do_sample=True, temperature=0.7,top_p=0.95), max_out_len=512,infer_type='SC',sc_size =4))
+    #inferencer=dict(type=SCInferencer,generation_kwargs=dict(do_sample=True, temperature=1.0,top_p=0.95), max_out_len=512,infer_type='SC',sc_size =4))
+    #inferencer=dict(type=SCInferencer,generation_kwargs=dict(do_sample=True, temperature=1.5,top_p=0.95), max_out_len=512,infer_type='SC',sc_size =4))
+    #inferencer=dict(type=SCInferencer,generation_kwargs=dict(do_sample=True, temperature=0.7,min_p=0.1), max_out_len=512,infer_type='SC',sc_size =4))
+    #inferencer=dict(type=SCInferencer,generation_kwargs=dict(do_sample=True, temperature=1.0,min_p=0.1), max_out_len=512,infer_type='SC',sc_size =4))
+    #inferencer=dict(type=SCInferencer,generation_kwargs=dict(do_sample=True, temperature=1.5,min_p=0.1), max_out_len=512,infer_type='SC',sc_size =4))
+    #inferencer=dict(type=GenInferencer, max_out_len=512))
+    #inferencer=dict(type=GenInferencer,generation_kwargs=dict(do_sample=True, temperature=0.7,top_p=0.95),max_out_len=512))
+    #inferencer=dict(type=GenInferencer,generation_kwargs=dict(do_sample=True, temperature=1.0,top_p=0.95),max_out_len=512))
+    #inferencer=dict(type=GenInferencer,generation_kwargs=dict(do_sample=True, temperature=1.5,top_p=0.95),max_out_len=512))
+gsm8k_eval_cfg = dict(evaluator=dict(type=Gsm8kEvaluator),
+                      pred_postprocessor=dict(type=gsm8k_postprocess),
+                      dataset_postprocessor=dict(type=gsm8k_dataset_postprocess),sc_size=8)
+
+gsm8k_datasets = [
+    dict(
+        abbr='gsm8k',
+        type=GSM8KDataset,
+        path='opencompass/gsm8k',
+        reader_cfg=gsm8k_reader_cfg,
+        infer_cfg=gsm8k_infer_cfg,
+        eval_cfg=gsm8k_eval_cfg)
+]
